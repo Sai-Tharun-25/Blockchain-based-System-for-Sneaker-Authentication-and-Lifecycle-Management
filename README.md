@@ -17,3 +17,20 @@ Manufacturers mint NFTs that represent each sneaker pair, ensuring traceability 
 1. Clone the repository:
    ```bash
    git clone https://github.com/Sai-Tharun-25/Blockchain-based-System-for-Sneaker-Authentication-and-Lifecycle-Management
+
+2. Navigate to the project folder and install dependencies:
+   ```bash
+   npm install
+
+3. Run the local development environment (example):
+   ```bash
+   npm start
+
+*(Setup details will be expanded in later stages.)*
+
+### Dependencies
+- Node.js (v18 or above)
+- npm or yarn
+- Hyperledger Fabric SDK
+- ReactJS
+- IPFS (optional for file storage)
