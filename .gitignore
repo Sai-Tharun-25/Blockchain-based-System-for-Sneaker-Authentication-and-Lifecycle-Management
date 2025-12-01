@@ -9,6 +9,7 @@ node_modules/
 .pnp.js
 package-lock.json
 yarn.lock
+/backend/.env
 
 # Testing
 /coverage
