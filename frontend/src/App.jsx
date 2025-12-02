@@ -390,6 +390,12 @@ function App() {
     const [verificationResult, setVerificationResult] = useState(null);
     const [verifying, setVerifying] = useState(false);
 
+    // Transfer ownership states
+    const [showTransfer, setShowTransfer] = useState(false);
+    const [transferTokenId, setTransferTokenId] = useState(''); // Keep as string
+    const [transferTo, setTransferTo] = useState('');
+    const [transferring, setTransferring] = useState(false);
+
     const handleVerify = async (e) => {
       e.preventDefault();
       if (!serialNumber) {
@@ -428,6 +434,93 @@ function App() {
       }
     };
 
+    const handleTransfer = async (e) => {
+      e.preventDefault();
+
+      // Enhanced validation
+      if (!transferTokenId || transferTokenId.trim() === '') {
+        alert('❌ Please enter a Token ID');
+        return;
+      }
+
+      // Convert to number and validate
+      const tokenIdNumber = parseInt(transferTokenId, 10);
+      if (isNaN(tokenIdNumber) || tokenIdNumber < 0) {
+        alert('❌ Invalid Token ID. Must be a positive number (0, 1, 2, ...)');
+        return;
+      }
+
+      if (!transferTo || transferTo.trim() === '') {
+        alert('❌ Please enter recipient wallet address');
+        return;
+      }
+
+      // Validate Ethereum address format
+      const trimmedAddress = transferTo.trim();
+      if (!/^0x[a-fA-F0-9]{40}$/.test(trimmedAddress)) {
+        alert('❌ Invalid wallet address format.\nMust be a valid Ethereum address starting with 0x followed by 40 hex characters.\n\nExample: 0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb');
+        return;
+      }
+
+      if (trimmedAddress.toLowerCase() === account.toLowerCase()) {
+        alert('❌ Cannot transfer to yourself!');
+        return;
+      }
+
+      // Confirmation dialog
+      const confirmTransfer = window.confirm(
+        `⚠️ CONFIRM TRANSFER\n\n` +
+        `Token ID: ${tokenIdNumber}\n` +
+        `From: ${account.substring(0, 10)}...${account.substring(36)}\n` +
+        `To: ${trimmedAddress.substring(0, 10)}...${trimmedAddress.substring(36)}\n\n` +
+        `This action cannot be undone. Proceed?`
+      );
+
+      if (!confirmTransfer) {
+        return;
+      }
+
+      try {
+        setTransferring(true);
+
+        const response = await fetch(`${API_BASE_URL}/transfer`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tokenId: tokenIdNumber, // Send as number
+            newOwner: trimmedAddress
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          alert(
+            `✅ TRANSFER SUCCESSFUL!\n\n` +
+            `Token ID: ${data.tokenId}\n` +
+            `New Owner: ${data.newOwner.substring(0, 10)}...${data.newOwner.substring(36)}\n` +
+            `Transaction Hash: ${data.transactionHash}\n\n` +
+            `View on Etherscan:\nhttps://sepolia.etherscan.io/tx/${data.transactionHash}`
+          );
+
+          // Reset form
+          setTransferTokenId('');
+          setTransferTo('');
+          setShowTransfer(false);
+
+          // Clear verification result to force re-verification
+          setVerificationResult(null);
+        } else {
+          alert(`❌ Transfer Failed\n\n${data.error}`);
+        }
+      } catch (error) {
+        console.error('Transfer error:', error);
+        alert(`❌ Transfer Failed\n\nError: ${error.message}\n\nPlease check:\n• Backend is running\n• You own this token\n• Recipient address is valid`);
+      } finally {
+        setTransferring(false);
+      }
+    };
+
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-950 via-purple-900 to-pink-900 py-12">
         <div className="max-w-4xl mx-auto px-4">
@@ -449,6 +542,7 @@ function App() {
             </div>
           </div>
 
+          {/* Verify Section */}
           <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20 mb-8">
             <h2 className="text-3xl font-bold text-white mb-4">Verify Sneaker Authenticity</h2>
             <p className="text-gray-300 mb-6">
@@ -480,7 +574,7 @@ function App() {
 
           {/* Verification Result */}
           {verificationResult && (
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20">
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20 mb-8">
               {verificationResult.found ? (
                 <div className="space-y-6">
                   <div className="flex items-center gap-3 mb-4">
@@ -508,6 +602,24 @@ function App() {
                       <p className="text-gray-400 text-sm mb-1">Current Owner</p>
                       <p className="text-white font-mono text-sm break-all">{verificationResult.owner}</p>
                     </div>
+
+                    {/* Quick Transfer Button */}
+                    {verificationResult.owner.toLowerCase() === account.toLowerCase() && (
+                      <button
+                        onClick={() => {
+                          setTransferTokenId(verificationResult.tokenId.toString());
+                          setShowTransfer(true);
+                          // Scroll to transfer section
+                          setTimeout(() => {
+                            document.getElementById('transfer-section')?.scrollIntoView({ behavior: 'smooth' });
+                          }, 100);
+                        }}
+                        className="w-full mt-4 px-4 py-2 bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 rounded-lg transition-all flex items-center justify-center gap-2"
+                      >
+                        <Package className="w-4 h-4" />
+                        Transfer This Sneaker
+                      </button>
+                    )}
                   </div>
 
                   <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
@@ -543,12 +655,113 @@ function App() {
           )}
 
           {!verificationResult && (
-            <div className="bg-white/5 rounded-2xl p-12 text-center border border-white/10">
+            <div className="bg-white/5 rounded-2xl p-12 text-center border border-white/10 mb-8">
               <Shield className="w-16 h-16 text-gray-500 mx-auto mb-4" />
               <p className="text-gray-400">Enter a serial number to verify</p>
               <p className="text-gray-500 text-sm mt-2">Results will appear here</p>
             </div>
           )}
+
+          {/* Transfer Ownership Section */}
+          <div id="transfer-section" className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <Package className="w-6 h-6 text-orange-400" />
+                <h2 className="text-3xl font-bold text-white">Transfer Ownership</h2>
+              </div>
+              <button
+                onClick={() => setShowTransfer(!showTransfer)}
+                className="px-4 py-2 bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 rounded-lg transition-all flex items-center gap-2"
+              >
+                {showTransfer ? <X className="w-4 h-4" /> : <Package className="w-4 h-4" />}
+                {showTransfer ? 'Close' : 'Open Transfer Form'}
+              </button>
+            </div>
+
+            <p className="text-gray-300 mb-6">
+              Transfer sneaker ownership to another wallet address
+            </p>
+
+            {showTransfer && (
+              <form onSubmit={handleTransfer} className="space-y-4">
+                <div>
+                  <label className="block text-white mb-2">Token ID *</label>
+                  <input
+                    type="text"
+                    value={transferTokenId}
+                    onChange={(e) => {
+                      // Only allow numbers
+                      const value = e.target.value;
+                      if (value === '' || /^\d+$/.test(value)) {
+                        setTransferTokenId(value);
+                      }
+                    }}
+                    placeholder="Enter token ID (e.g., 0, 1, 2)"
+                    className="w-full px-4 py-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    disabled={transferring}
+                  />
+                  <p className="text-sm text-gray-400 mt-2">
+                    💡 Tip: Verify a sneaker above to auto-fill the Token ID
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-white mb-2">Transfer To *</label>
+                  <input
+                    type="text"
+                    value={transferTo}
+                    onChange={(e) => setTransferTo(e.target.value)}
+                    placeholder="0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
+                    className="w-full px-4 py-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 font-mono text-sm"
+                    disabled={transferring}
+                  />
+                  <p className="text-sm text-gray-400 mt-2">
+                    ⚠️ Make sure the wallet address is correct. Transfers are permanent and cannot be reversed.
+                  </p>
+                </div>
+
+                <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 mb-4">
+                  <div className="flex items-start gap-3">
+                    <span className="text-yellow-400 text-xl">⚠️</span>
+                    <div>
+                      <p className="text-yellow-400 font-semibold mb-1">Important Notice</p>
+                      <ul className="text-yellow-300 text-sm space-y-1">
+                        <li>• You must be the current owner to transfer</li>
+                        <li>• Double-check the recipient address</li>
+                        <li>• Transaction requires gas fees</li>
+                        <li>• Transfer is irreversible once confirmed</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={transferring || !transferTokenId || !transferTo}
+                  className="w-full bg-gradient-to-r from-orange-600 to-red-600 text-white py-3 rounded-lg font-semibold hover:shadow-lg transform hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {transferring ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                      Transferring...
+                    </>
+                  ) : (
+                    <>
+                      <Package className="w-5 h-5" />
+                      Confirm Transfer
+                    </>
+                  )}
+                </button>
+              </form>
+            )}
+
+            {!showTransfer && (
+              <div className="text-center py-8">
+                <Package className="w-16 h-16 text-gray-500 mx-auto mb-4 opacity-50" />
+                <p className="text-gray-400">Click "Open Transfer Form" to transfer ownership</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     );
