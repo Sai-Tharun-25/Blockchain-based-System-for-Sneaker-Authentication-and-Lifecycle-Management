@@ -19,9 +19,7 @@ The goal is to combat counterfeits by enabling transparent, verifiable sneaker a
 
 ## ⚙️ Setup Instructions
 ### 1. Clone the repository:
-      ``` 
       git clone https://github.com/Sai-Tharun-25/Blockchain-based-System-for-Sneaker-Authentication-and-Lifecycle-Management
-      ```
       
 ### 2. Deploy Smart Contract to Sepolia:
    - Open `SneakerRegistry.sol` in Remix
@@ -87,11 +85,11 @@ The goal is to combat counterfeits by enabling transparent, verifiable sneaker a
 ## 📝 Smart Contract Summary
 
 `SneakerRegistry.sol` provides:
-- `mintSneaker(serial)` — Manufacturer-only minting
-- `verifySneaker(serial)` — Returns tokenId + currentOwner
-- `transferOwnership(tokenId, newOwner)` — Only current owner can transfer
-- `sneakers(id)` — Returns sneaker struct
-- `nextTokenId()` — Auto-increment counter
+- `mintSneaker(serial)` - Manufacturer-only minting
+- `verifySneaker(serial)` - Returns tokenId + currentOwner
+- `transferOwnership(tokenId, newOwner)` - Only current owner can transfer
+- `sneakers(id)` - Returns sneaker struct
+- `nextTokenId()` - Auto-increment counter
 - Event logs:
    * `SneakerMinted`
    * `OwnershipTransferred`
