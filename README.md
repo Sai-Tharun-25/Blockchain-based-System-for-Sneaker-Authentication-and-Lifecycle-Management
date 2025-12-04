@@ -19,9 +19,10 @@ The goal is to combat counterfeits by enabling transparent, verifiable sneaker a
 
 ## ⚙️ Setup Instructions
 ### 1. Clone the repository:
-      ```bash
+      ``` 
       git clone https://github.com/Sai-Tharun-25/Blockchain-based-System-for-Sneaker-Authentication-and-Lifecycle-Management
-
+      ```
+      
 ### 2. Deploy Smart Contract to Sepolia:
    - Open `SneakerRegistry.sol` in Remix
    - Connect MetaMask -> switch to Sepolia testnet
@@ -56,12 +57,11 @@ The goal is to combat counterfeits by enabling transparent, verifiable sneaker a
    Navigate to `/frontend`:
    ```
    npm install
-   Frontend runs at:
+   npm start
    ```
    Frontend runs at:
-   ```
-   http://localhost:3000
-   ```
+   `http://localhost:3000`
+
 
 ---
 
